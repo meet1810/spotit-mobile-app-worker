@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -6,7 +6,9 @@ import {
     ScrollView,
     Image,
     TouchableOpacity,
-    SafeAreaView
+    SafeAreaView,
+    Modal,
+    Alert
 } from 'react-native';
 import { COLORS, GLOBAL_STYLES, SHADOWS } from '../styles/theme';
 import Header from '../components/Header';
@@ -16,8 +18,9 @@ import i18n from '../i18n';
 import { useLanguage } from '../i18n/LanguageContext';
 
 const ProfileScreen = ({ navigation }) => {
-    const { t, locale } = useLanguage();
+    const { t, locale, changeLanguage, language, languages } = useLanguage();
     const { user, logout } = useMockContext();
+    const [langModalVisible, setLangModalVisible] = useState(false);
 
     const handleLogout = async () => {
         await logout();
@@ -34,54 +37,35 @@ const ProfileScreen = ({ navigation }) => {
             <ScrollView contentContainerStyle={styles.content}>
 
                 {/* Profile Card */}
+                {/* Profile Card */}
                 <View style={styles.profileCard}>
                     <View style={styles.avatarContainer}>
                         <View style={styles.avatarCircle}>
                             <Text style={styles.avatarInitial}>{user?.name ? user.name.charAt(0).toUpperCase() : 'U'}</Text>
                         </View>
-                        <View style={styles.editIconBadge}>
-                            <Ionicons name="camera" size={12} color={COLORS.white} />
-                        </View>
                     </View>
 
                     <Text style={styles.userName}>{user?.name || 'Worker'}</Text>
-                    <Text style={styles.userEmail}>{user?.email || 'worker@spotit.com'} | {t('sanitationWorker') || 'Sanitation Worker'}</Text>
-
-                    <View style={styles.locationContainer}>
-                        <Ionicons name="location-sharp" size={14} color={COLORS.textSecondary} />
-                        <Text style={styles.locationText}>{user?.zone || 'Zone 1'}</Text>
-                    </View>
+                    <Text style={styles.userEmail}>{user?.email || 'worker@spotit.com'}</Text>
+                    <Text style={[styles.userEmail, { marginTop: -5 }]}>{t('sanitationWorker')}</Text>
                 </View>
 
-                {/* Stats Grid */}
+                {/* Stats Grid - Simplified */}
                 <View style={styles.statsGrid}>
-                    <View style={styles.statCard}>
+                    <View style={[styles.statCard, { flex: 1 }]}>
                         <View style={[styles.iconCircle, { backgroundColor: '#FFF0E6' }]}>
-                            <Ionicons name="camera" size={20} color={COLORS.primary} />
+                            <Ionicons name="briefcase" size={20} color={COLORS.primary} />
                         </View>
                         <Text style={styles.statValue}>{user?.totalTasks || 0}</Text>
-                        <Text style={styles.statLabel}>{t('tasksDone') || 'Tasks Done'}</Text>
+                        <Text style={styles.statLabel}>{t('tasksDone') || 'Tasks Completed'}</Text>
                     </View>
 
-                    <View style={styles.statCard}>
-                        <View style={[styles.iconCircle, { backgroundColor: '#FFFAEB' }]}>
-                            <Ionicons name="trophy" size={20} color="#FFC107" />
-                        </View>
-                        <Text style={styles.statValue}>{user?.points || 0}</Text>
-                        <Text style={styles.statLabel}>{t('points')}</Text>
-                    </View>
-
-                    <View style={styles.statCard}>
-                        <View style={[styles.iconCircle, { backgroundColor: '#E6F4EA' }]}>
-                            <Ionicons name="ribbon" size={20} color={COLORS.success} />
-                        </View>
-                        <Text style={styles.statValue}>{user?.rank || t('guard')}</Text>
-                        <Text style={styles.statLabel}>{t('rank')}</Text>
-                    </View>
+                    {/* Removed Points and Rank Cards */}
                 </View>
 
                 {/* Language Section */}
-                <View style={styles.actionButton}>
+                {/* Language Section */}
+                <TouchableOpacity style={styles.actionButton} onPress={() => setLangModalVisible(true)}>
                     <View style={styles.actionLeft}>
                         <View style={[styles.actionIcon, { backgroundColor: '#FFF0E6' }]}>
                             <Ionicons name="language" size={20} color={COLORS.primary} />
@@ -89,10 +73,12 @@ const ProfileScreen = ({ navigation }) => {
                         <Text style={styles.actionText}>{t('language')}</Text>
                     </View>
                     <View style={styles.actionRight}>
-                        <Text style={styles.actionValueText}>{locale === 'en' ? 'English' : 'Hindi'}</Text>
+                        <Text style={styles.actionValueText}>
+                            {languages.find(l => l.code === language)?.label || (locale === 'en' ? 'English' : 'Hindi')}
+                        </Text>
                         <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
                     </View>
-                </View>
+                </TouchableOpacity>
 
                 {/* Settings Header */}
                 <Text style={styles.sectionHeader}>{t('settings')}</Text>
@@ -103,7 +89,7 @@ const ProfileScreen = ({ navigation }) => {
                         <Text style={styles.settingText}>{t('home')}</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.settingRow}>
+                    <TouchableOpacity style={styles.settingRow} onPress={() => Alert.alert(t('notifications'), t('caughtUp'))}>
                         <Ionicons name="notifications-outline" size={22} color={COLORS.textSecondary} />
                         <Text style={styles.settingText}>{t('notifications')}</Text>
                     </TouchableOpacity>
@@ -115,6 +101,36 @@ const ProfileScreen = ({ navigation }) => {
                 </View>
 
             </ScrollView>
+            {/* Language Modal */}
+            <Modal visible={langModalVisible} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>{t('language')}</Text>
+                            <TouchableOpacity onPress={() => setLangModalVisible(false)}>
+                                <Ionicons name="close" size={24} color={COLORS.text} />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView contentContainerStyle={{ padding: 20 }}>
+                            {languages.map(lang => (
+                                <TouchableOpacity
+                                    key={lang.code}
+                                    style={[styles.langOption, language === lang.code && styles.selectedLang]}
+                                    onPress={() => {
+                                        changeLanguage(lang.code);
+                                        setLangModalVisible(false);
+                                    }}
+                                >
+                                    <Text style={[styles.langModalText, language === lang.code && { color: COLORS.primary, fontWeight: 'bold' }]}>
+                                        {lang.label}
+                                    </Text>
+                                    {language === lang.code && <Ionicons name="checkmark" size={20} color={COLORS.primary} />}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -277,6 +293,46 @@ const styles = StyleSheet.create({
         color: COLORS.text,
         marginLeft: 16,
     },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: COLORS.white,
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
+        height: '60%',
+        paddingBottom: 20,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: COLORS.text,
+    },
+    langOption: {
+        paddingVertical: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+        flexDirection: 'row',
+        justifyContent: 'space-between'
+    },
+    selectedLang: {
+        backgroundColor: '#f9f9f9'
+    },
+    langModalText: {
+        fontSize: 16,
+        color: COLORS.text,
+    }
 });
 
 export default ProfileScreen;

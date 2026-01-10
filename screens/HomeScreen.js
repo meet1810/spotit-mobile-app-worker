@@ -6,19 +6,22 @@ import {
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
-    FlatList,
-    RefreshControl
+    RefreshControl,
+    Switch,
+    Dimensions
 } from 'react-native';
 import * as Location from 'expo-location';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { COLORS, COMMON_STYLES, SHADOWS } from '../styles/theme';
+import { COLORS, COMMON_STYLES, SHADOWS, SIZES } from '../styles/theme';
 import IssueCard from '../components/IssueCard';
 import { useMockContext } from '../utils/MockContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import { getWorkerTasks } from '../utils/api';
 import Header from '../components/Header';
+
+const { width } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }) => {
     // State
@@ -26,9 +29,11 @@ const HomeScreen = ({ navigation }) => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [activeTab, setActiveTab] = useState('Pending'); // 'Today', 'Pending', 'Completed'
+    const [isOnDuty, setIsOnDuty] = useState(true);
 
     // Context & Language
-    const { points, setUserLocation } = useMockContext();
+    const { setUserLocation } = useMockContext();
     const { t } = useLanguage();
 
     // Initial Location Fetch
@@ -68,17 +73,11 @@ const HomeScreen = ({ navigation }) => {
     const fetchTasks = async () => {
         try {
             setLoading(true);
-            // const data = await getWorkerTasks(); // Use real API
-            // For now, if API fails or returns empty during dev without valid backend, fall back or use empty array
-            // But per instruction, we use the API.
-
-            // Assuming getWorkerTasks returns { tasks: [], ... }
             const data = await getWorkerTasks();
             console.log("Tasks response:", data);
             setTasks(data.tasks || []);
         } catch (error) {
             console.log('Error fetching tasks:', error);
-            // Optional: fallback to mock if needed, but user wants real API.
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -100,146 +99,180 @@ const HomeScreen = ({ navigation }) => {
         }, [])
     );
 
-    const renderTaskItem = ({ item }) => (
-        <TouchableOpacity
-            onPress={() => navigation.navigate('TaskDetail', { task: item })}
-            style={styles.taskCardWrapper}
-        >
-            <IssueCard issue={item} />
-        </TouchableOpacity>
-    );
+    // Filtering Logic
+    const getFilteredTasks = () => {
+        if (!tasks) return [];
+        switch (activeTab) {
+            case 'Today':
+                // Assuming 'createdAt' or 'assignedAt' is available and we filter for today. 
+                // For now, let's show PENDING tasks as 'Today's work' or all pending.
+                // Or filter by date if strictly required. Let's start with Status based tabs mostly.
+                return tasks.filter(task => task.status === 'PENDING' || task.status === 'IN_PROGRESS');
+            case 'Pending':
+                return tasks.filter(task => task.status === 'PENDING' || task.status === 'ASSIGNED');
+            case 'Completed':
+                return tasks.filter(task => task.status === 'RESOLVED' || task.status === 'CLOSED');
+            default:
+                return tasks;
+        }
+    };
+
+    const filteredTasks = getFilteredTasks();
 
     const renderEmpty = () => (
         <View style={styles.emptyContainer}>
-            <Ionicons name="clipboard-outline" size={60} color={COLORS.textLight} />
-            <Text style={styles.emptyText}>{t('noTasks')}</Text>
+            <View style={styles.emptyIconCircle}>
+                <Ionicons name="checkbox-outline" size={50} color={COLORS.textLight} />
+            </View>
+            <Text style={styles.emptyText}>{t('noTasks') || 'No tasks found'}</Text>
+            <Text style={styles.emptySubText}>
+                {activeTab === 'Completed' ? t('noCompletedTasks') : t('caughtUp')}
+            </Text>
         </View>
+    );
+
+    const TabButton = ({ title, isActive, onPress }) => (
+        <TouchableOpacity
+            style={[styles.tabButton, isActive && styles.activeTabButton]}
+            onPress={onPress}
+        >
+            <Text style={[styles.tabText, isActive && styles.activeTabText]}>{title}</Text>
+        </TouchableOpacity>
     );
 
     return (
         <View style={COMMON_STYLES.container}>
-            {/* Standard Header */}
             <Header showLocation={true} cityOverride={city} />
 
+            {/* Duty Toggle Section */}
+            <View style={styles.dutyContainer}>
+                <View>
+                    <Text style={styles.dutyLabel}>{isOnDuty ? t('onDuty') : t('offDuty')}</Text>
+                    <Text style={styles.dutySubLabel}>{isOnDuty ? t('receivingTasks') : t('youAreOffline')}</Text>
+                </View>
+                <Switch
+                    trackColor={{ false: "#767577", true: COLORS.successLight }}
+                    thumbColor={isOnDuty ? COLORS.success : "#f4f3f4"}
+                    ios_backgroundColor="#3e3e3e"
+                    onValueChange={() => setIsOnDuty(!isOnDuty)}
+                    value={isOnDuty}
+                />
+            </View>
+
+            <View style={styles.tabContainer}>
+                <TabButton title={t('today')} isActive={activeTab === 'Today'} onPress={() => setActiveTab('Today')} />
+                <TabButton title={t('pending')} isActive={activeTab === 'Pending'} onPress={() => setActiveTab('Pending')} />
+                <TabButton title={t('completed')} isActive={activeTab === 'Completed'} onPress={() => setActiveTab('Completed')} />
+            </View>
+
             <ScrollView
-                contentContainerStyle={{ padding: 20, flexGrow: 1 }}
+                contentContainerStyle={{ padding: 20, paddingTop: 10, flexGrow: 1 }}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >
-                {/* Rewards / Status Card */}
-                {/* <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-                    <View style={[styles.rewardsCard, { backgroundColor: COLORS.primary }]}>
-                        <View style={styles.rewardsContent}>
-                            <View>
-                                <Text style={styles.rewardsLabel}>{t('yourImpact')}</Text>
-                                <Text style={styles.rewardsValue}>{points} {t('points')}</Text>
-                                <Text style={styles.rewardsSub}>Keep it up, Worker!</Text>
-                            </View>
-                            <View style={styles.trophyContainer}>
-                                <Ionicons name="trophy" size={50} color={COLORS.warning} />
-                            </View>
-                        </View>
-                    </View>
-                </TouchableOpacity> */}
-
-                {/* Pending Tasks Header */}
-                <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.sectionHeader}>{t('pendingTasks')}</Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('Work')}>
-                        <Text style={styles.seeAllText}>{t('seeAll')}</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Task List */}
                 {loading ? (
-                    <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />
+                    <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 50 }} />
                 ) : (
                     <View>
-                        {tasks.length === 0 ? renderEmpty() : (
-                            tasks.map(item => (
+                        {filteredTasks.length === 0 ? renderEmpty() : (
+                            filteredTasks.map(item => (
                                 <TouchableOpacity
                                     key={item.id}
                                     onPress={() => navigation.navigate('TaskDetail', { task: item })}
-                                    style={{ marginBottom: 15 }}
+                                    style={styles.taskCardWrapper}
+                                    activeOpacity={0.9}
                                 >
                                     <IssueCard issue={item} />
+                                    {/* Status Badge overlay if needed, but IssueCard might have it */}
                                 </TouchableOpacity>
                             ))
                         )}
                     </View>
                 )}
-
             </ScrollView>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    rewardsCard: {
-        borderRadius: 20,
-        padding: 20,
-        marginBottom: 25,
-        ...SHADOWS.strong,
-        overflow: 'hidden',
-    },
-    rewardsContent: {
+    dutyContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        backgroundColor: COLORS.white,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
     },
-    rewardsLabel: {
-        color: 'rgba(255,255,255,0.9)',
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 5,
-    },
-    rewardsValue: {
-        color: COLORS.white,
-        fontSize: 36,
-        fontWeight: 'bold',
-    },
-    rewardsSub: {
-        color: 'rgba(255,255,255,0.8)',
-        fontSize: 12,
-    },
-    trophyContainer: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        width: 70,
-        height: 70,
-        borderRadius: 35,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-
-    sectionHeader: {
+    dutyLabel: {
         fontSize: 18,
         fontWeight: 'bold',
         color: COLORS.text,
-        marginBottom: 15,
     },
-    sectionHeaderRow: {
+    dutySubLabel: {
+        fontSize: 12,
+        color: COLORS.textLight,
+        marginTop: 2,
+    },
+    tabContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'baseline',
-        marginBottom: 10,
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        backgroundColor: COLORS.background, // Match screen background
+        alignItems: 'center',
+        justifyContent: 'space-between'
     },
-    seeAllText: {
-        color: COLORS.primary,
-        fontWeight: '600',
+    tabButton: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 20,
+        backgroundColor: COLORS.white,
+        marginHorizontal: 4,
+        ...SHADOWS.light,
+        borderWidth: 1,
+        borderColor: 'transparent'
+    },
+    activeTabButton: {
+        backgroundColor: COLORS.primary,
+        ...SHADOWS.medium,
+    },
+    tabText: {
         fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.textSecondary,
+    },
+    activeTabText: {
+        color: COLORS.white,
     },
 
     emptyContainer: {
         alignItems: 'center',
-        marginTop: 50,
-        opacity: 0.6
+        marginTop: 60,
+        paddingHorizontal: 40,
+    },
+    emptyIconCircle: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: '#f5f5f5',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
     },
     emptyText: {
-        marginTop: 10,
-        fontSize: 16,
-        color: COLORS.textLight
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: COLORS.text,
+        marginBottom: 8,
+    },
+    emptySubText: {
+        fontSize: 14,
+        color: COLORS.textLight,
+        textAlign: 'center',
     },
     taskCardWrapper: {
-        marginBottom: 15
+        marginBottom: 15,
     }
 });
 

@@ -40,7 +40,7 @@ const Header = ({ title, showLocation = false, cityOverride }) => {
 const styles = StyleSheet.create({
     header: {
         paddingHorizontal: 20,
-        paddingBottom: 15,
+        paddingBottom: 5,
         backgroundColor: COLORS.white,
         borderBottomWidth: 1,
         borderBottomColor: COLORS.border,

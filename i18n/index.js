@@ -8,7 +8,7 @@ const translations = {
         appName: "SpotIt",
         welcome: "Welcome",
         loginTitle: "Login to your account",
-        mobileOrEmail: "Mobile Number or Email",
+        mobileOrEmail: "Email",
         location: "Location",
         home: "Home",
         issues: "Issues",
@@ -80,7 +80,17 @@ const translations = {
         taskResolved: "Task Resolved!",
         instructions: "Instructions",
         startTask: "Start Task",
-        markComplete: "Mark Complete"
+        markComplete: "Mark Complete",
+        sanitationWorker: "Sanitation Worker",
+        tasksDone: "Tasks Completed",
+        today: "Today",
+        pending: "Pending",
+        onDuty: "On Duty",
+        offDuty: "Off Duty",
+        receivingTasks: "You are receiving tasks",
+        youAreOffline: "You are offline",
+        caughtUp: "You're all caught up!",
+        noCompletedTasks: "You haven't completed any tasks yet."
     },
     hi: { // Hindi
         appName: "स्पॉट इट",
@@ -157,7 +167,19 @@ const translations = {
         taskResolved: "कार्य का समाधान हो गया!",
         instructions: "निर्देश",
         startTask: "कार्य शुरू करें",
-        markComplete: "पूर्ण चिह्नित करें"
+        markComplete: "पूर्ण चिह्नित करें",
+        sanitationWorker: "ਸਫਾਈ ਕਰਮਚਾਰੀ", // Using Punjabi char temporarily? No, Hindi: सफाई कर्मचारी
+        sanitationWorker: "सफाई कर्मचारी",
+        tasksDone: "कार्य पूर्ण",
+        today: "आज",
+        pending: "लंबित",
+        completed: "पूर्ण",
+        onDuty: "ड्यूटी पर",
+        offDuty: "ड्यूटी से बाहर",
+        receivingTasks: "आप कार्य प्राप्त कर रहे हैं",
+        youAreOffline: "आप ऑफ़लाइन हैं",
+        caughtUp: "आप पूरी तरह से अद्यतित हैं!",
+        noCompletedTasks: "आपने अभी तक कोई कार्य पूरा नहीं किया है।"
     },
     gu: { // Gujarati
         appName: "સ્પોટ ઇટ",

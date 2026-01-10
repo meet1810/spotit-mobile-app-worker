@@ -5,8 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const MockContext = createContext();
 
 export const MockProvider = ({ children }) => {
-    const [points, setPoints] = useState(100);
-    const [issues, setIssues] = useState(MOCK_TASKS);
+    // const [points, setPoints] = useState(100); // Removed per user request
+    const [issues, setIssues] = useState([]); // Kept for task list state management if needed
     const [userLocation, setUserLocation] = useState({ city: 'Ahmedabad', address: 'Unknown' });
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +32,7 @@ export const MockProvider = ({ children }) => {
 
     const addIssue = (issue) => {
         setIssues(prev => [issue, ...prev]);
-        setPoints(p => p + (issue.points || 0));
+        // Points logic removed
     };
 
     const refreshIssues = async () => {
@@ -62,7 +62,7 @@ export const MockProvider = ({ children }) => {
 
     return (
         <MockContext.Provider value={{
-            points,
+            // points, // Removed
             addIssue,
             issues,
             userLocation,

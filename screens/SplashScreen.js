@@ -20,7 +20,6 @@ const SplashScreen = ({ navigation }) => {
                     style={styles.logo}
                     resizeMode="contain"
                 />
-                <Text style={styles.subtitle}>Swachh Bharat Mission Initiative</Text>
             </View>
         </View>
     );
