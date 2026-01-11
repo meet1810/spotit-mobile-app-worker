@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { login as apiLogin, register as apiRegister } from '../utils/api';
 import { useMockContext } from '../utils/MockContext';
 import { useLanguage } from '../i18n/LanguageContext';
+import { getFCMToken, onMessageListener } from '../utils/fcmHelper';
 
 const LoginScreen = ({ navigation }) => {
     const [isLogin, setIsLogin] = useState(true);
@@ -47,6 +48,18 @@ const LoginScreen = ({ navigation }) => {
         return null;
     };
 
+    // FCM Listener
+    React.useEffect(() => {
+        const unsubscribe = onMessageListener(async remoteMessage => {
+            console.log("Notification:", remoteMessage);
+            Alert.alert(
+                remoteMessage.notification?.title || 'New Notification',
+                remoteMessage.notification?.body || JSON.stringify(remoteMessage.data)
+            );
+        });
+        return unsubscribe;
+    }, []);
+
     const handleAuth = async () => {
         const validationError = validateInput();
         if (validationError) {
@@ -58,25 +71,20 @@ const LoginScreen = ({ navigation }) => {
         setLoading(true);
 
         try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-                // optional handling
+            try {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+            } catch (permError) {
+                console.log("Location permission error:", permError);
             }
 
-            // LOGIN ONLY
-            const response = await apiLogin(email, password);
-            console.log('Login Success:', response);
+            // Get FCM Token (Safe Helper)
+            const fcmToken = await getFCMToken();
+            console.log("FCM Token Used:", fcmToken);
+
+            // LOGIN - Send token (real or mock)
+            const response = await apiLogin(email, password, fcmToken);
 
             if (response.success || response.token) {
-                // Adapt to response structure. Swagger says { success: true, token: "..." }
-                // We might need to fetch user details separately if not in response, 
-                // but for now let's assume we proceed and maybe fetch profile later or 
-                // use decodable token. The previous code assumed response.user.
-                // If response.user is missing, we might need to handle it.
-                // For this implementation, I will assume the token is enough to start, 
-                // and we might simulate a user object or fetch it if the API supported /me.
-                // The provided API snippet sends { success, token }. 
-                // I will create a dummy user object if needed or check if logic allows null.
                 const userObj = response.user || { name: 'Worker', email: email, role: 'worker' };
                 await login(userObj, response.token);
                 navigation.replace('MainApp');
@@ -88,10 +96,8 @@ const LoginScreen = ({ navigation }) => {
             console.log('Auth Error:', error);
             const errorMsg = typeof error === 'string' ? error : (error.message || JSON.stringify(error) || t('authFailed'));
             setError(errorMsg);
-            Alert.alert(t('error') || 'Error', errorMsg);
             setLoading(false); // Only stop loading on error
         } finally {
-            // Do not stop loading on success to prevent flicker before nav
             if (error) setLoading(false);
         }
     };
@@ -102,7 +108,7 @@ const LoginScreen = ({ navigation }) => {
             setLoading(false);
             const mockUser = { name: 'Google User', email: 'user@gmail.com', u_id: 'g_123' };
             await login(mockUser, 'mock_token');
-            navigation.replace('Main');
+            navigation.replace('MainApp');
         }, 1500);
     };
 
@@ -169,12 +175,6 @@ const LoginScreen = ({ navigation }) => {
                             loading={loading}
                             style={styles.authButton}
                         />
-
-                        {/* Removed Google Login & Sign Up Toggle for Worker App specifics if needed, 
-                            but keeping Google as per user previous code unless explicitly asked to remove EVERYTHING else.
-                            User said "remove sign up flow just we make login not sign up". 
-                            So I will commented out or remove the SignUp toggle below.
-                        */}
                     </View>
 
                     {/* Footer decoration */}

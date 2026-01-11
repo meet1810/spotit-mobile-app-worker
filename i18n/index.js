@@ -49,7 +49,7 @@ const translations = {
         impactPoints: "Impact Points",
 
         // Login Specific
-        welcomeBack: "Welcome Back!",
+        welcomeBack: "Welcome Workers!",
         joinMission: "Join the Mission",
         signInDesc: "Sign in to make your city cleaner.",
         registerDesc: "Register to start reporting issues.",

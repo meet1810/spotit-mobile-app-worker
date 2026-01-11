@@ -1,20 +1,37 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/theme';
+import { NATIVE_PUBLIC_URL } from '../constants/Config';
 
 const IssueCard = ({ issue }) => {
+    // Helper to get Status Color
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'RESOLVED': return COLORS.success;
+            case 'IN_PROGRESS': return COLORS.warning || '#FFA500';
+            case 'PENDING': return COLORS.danger;
+            default: return COLORS.secondary;
+        }
+    };
+
+    // Construct Image URL
+    const imageUrl = issue.imagePath
+        ? (issue.imagePath.startsWith('http') ? issue.imagePath : `${NATIVE_PUBLIC_URL}/${issue.imagePath}`)
+        : null;
+
     return (
         <View style={styles.card}>
             <Image
-                source={typeof issue.imageUri === 'string' ? { uri: issue.imageUri } : require('../assets/icon.png')}
+                source={imageUrl ? { uri: imageUrl } : require('../assets/icon.png')}
                 style={styles.thumbnail}
             />
             <View style={styles.content}>
-                <View style={[styles.badge, { backgroundColor: issue.status === 'pending' ? COLORS.success : COLORS.secondary }]}>
+                <View style={[styles.badge, { backgroundColor: getStatusColor(issue.status) }]}>
                     <Text style={styles.badgeText}>{issue.status}</Text>
                 </View>
-                <Text style={styles.date}>{new Date(issue.timestamp || Date.now()).toLocaleDateString()}</Text>
-                <Text style={styles.title}>{issue.locationText || issue.locationName}</Text>
+                <Text style={styles.date}>{new Date(issue.createdAt || Date.now()).toLocaleDateString()}</Text>
+                <Text style={styles.title}>{issue.category || 'Issue'}</Text>
+                <Text style={styles.subtitle}>Severity: {issue.severity}</Text>
             </View>
         </View>
     );
@@ -30,8 +47,8 @@ const styles = StyleSheet.create({
         ...SHADOWS.low,
     },
     thumbnail: {
-        width: 70,
-        height: 70,
+        width: 80,
+        height: 80,
         backgroundColor: '#EEEEEE',
         borderRadius: 12,
         marginRight: 16,
@@ -61,6 +78,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '700',
         color: COLORS.secondary,
+        marginBottom: 2,
+    },
+    subtitle: {
+        fontSize: 12,
+        color: COLORS.textLight,
     },
 });
 

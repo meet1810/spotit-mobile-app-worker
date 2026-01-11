@@ -29,7 +29,7 @@ const HomeScreen = ({ navigation }) => {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [activeTab, setActiveTab] = useState('Pending'); // 'Today', 'Pending', 'Completed'
+    const [activeTab, setActiveTab] = useState('Pending'); // 'Pending', 'Completed'
     const [isOnDuty, setIsOnDuty] = useState(true);
 
     // Context & Language
@@ -65,7 +65,7 @@ const HomeScreen = ({ navigation }) => {
                 }
             }
         } catch (e) {
-            console.log("Geocoding error:", e);
+            // console.log("Geocoding error:", e);
             setCity("India");
         }
     };
@@ -77,7 +77,7 @@ const HomeScreen = ({ navigation }) => {
             console.log("Tasks response:", data);
             setTasks(data.tasks || []);
         } catch (error) {
-            console.log('Error fetching tasks:', error);
+            // console.log('Error fetching tasks:', error);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -103,14 +103,15 @@ const HomeScreen = ({ navigation }) => {
     const getFilteredTasks = () => {
         if (!tasks) return [];
         switch (activeTab) {
-            case 'Today':
-                // Assuming 'createdAt' or 'assignedAt' is available and we filter for today. 
-                // For now, let's show PENDING tasks as 'Today's work' or all pending.
-                // Or filter by date if strictly required. Let's start with Status based tabs mostly.
-                return tasks.filter(task => task.status === 'PENDING' || task.status === 'IN_PROGRESS');
             case 'Pending':
-                return tasks.filter(task => task.status === 'PENDING' || task.status === 'ASSIGNED');
+                // Show all active tasks: Pending, Assigned, In Progress
+                return tasks.filter(task =>
+                    task.status === 'PENDING' ||
+                    task.status === 'ASSIGNED' ||
+                    task.status === 'IN_PROGRESS'
+                );
             case 'Completed':
+                // Finished tasks
                 return tasks.filter(task => task.status === 'RESOLVED' || task.status === 'CLOSED');
             default:
                 return tasks;
@@ -160,7 +161,6 @@ const HomeScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.tabContainer}>
-                <TabButton title={t('today')} isActive={activeTab === 'Today'} onPress={() => setActiveTab('Today')} />
                 <TabButton title={t('pending')} isActive={activeTab === 'Pending'} onPress={() => setActiveTab('Pending')} />
                 <TabButton title={t('completed')} isActive={activeTab === 'Completed'} onPress={() => setActiveTab('Completed')} />
             </View>

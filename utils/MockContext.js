@@ -24,7 +24,7 @@ export const MockProvider = ({ children }) => {
                 setUser(JSON.parse(userData));
             }
         } catch (e) {
-            console.log('Failed to load user', e);
+            // console.log('Failed to load user', e);
         } finally {
             setIsLoading(false);
         }
@@ -46,7 +46,7 @@ export const MockProvider = ({ children }) => {
             await AsyncStorage.setItem('userData', JSON.stringify(userData));
             setUser(userData);
         } catch (e) {
-            console.log('Login persistence error', e);
+            // console.log('Login persistence error', e);
         }
     };
 
@@ -56,7 +56,7 @@ export const MockProvider = ({ children }) => {
             await AsyncStorage.removeItem('userData');
             setUser(null);
         } catch (e) {
-            console.log('Logout error', e);
+            // console.log('Logout error', e);
         }
     };
 

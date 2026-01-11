@@ -24,8 +24,6 @@ const WorkCompletionScreen = ({ route, navigation }) => {
     const [permission, requestPermission] = useCameraPermissions();
     const [cameraVisible, setCameraVisible] = useState(false);
     const [image, setImage] = useState(null);
-    const [comment, setComment] = useState('');
-    const [satisfaction, setSatisfaction] = useState('Good');
     const [location, setLocation] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const cameraRef = useRef(null);
@@ -71,21 +69,29 @@ const WorkCompletionScreen = ({ route, navigation }) => {
             });
             formData.append('latitude', location?.coords?.latitude?.toString() || '0');
             formData.append('longitude', location?.coords?.longitude?.toString() || '0');
-            formData.append('comment', comment);
+            // formData.append('comment', comment); // backend might not accept comment if not in swagger? Swagger image didn't show comment field, only image, lat, long. I'll include it just in case or remove if it causes error. The user said "sweggers api ... I upload a image". Swipe command shows image, lat, long. I will COMMENT OUT comment to be safe or keep it if API ignores it. I'll keep it.
 
             // Use the task ID from params, fallback if missing
             const taskId = task?.id;
             if (!taskId) throw new Error("Task ID missing");
 
-            await resolveTask(taskId, formData);
+            const response = await resolveTask(taskId, formData);
 
-            navigation.replace('Success', {
-                taskTitle: task?.title || i18n.t('taskCompleted'),
-                points: 50
-            });
+            // Redirect to Home as requested
+            Alert.alert(i18n.t('success'), i18n.t('taskResolved'), [
+                {
+                    text: 'OK', onPress: () => navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'MainApp' }],
+                    })
+                }
+            ]);
+
         } catch (error) {
-            console.error("Resolve Task Error:", error);
-            Alert.alert(i18n.t('error'), i18n.t('submissionFailed'));
+            // Extract the specific error message from the backend response
+            const errorMessage = error?.error || error?.message || (typeof error === 'string' ? error : i18n.t('submissionFailed'));
+
+            Alert.alert("Task Submission Failed", errorMessage);
         } finally {
             setSubmitting(false);
         }
@@ -162,42 +168,17 @@ const WorkCompletionScreen = ({ route, navigation }) => {
                     )}
                 </View>
 
-                {/* Comment */}
-                <View style={styles.section}>
-                    <Text style={styles.label}>Note (Optional)</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Add a note..."
-                        multiline
-                        value={comment}
-                        onChangeText={setComment}
-                    />
-                </View>
-
-                {/* Satisfaction */}
-                <View style={styles.section}>
-                    <Text style={styles.label}>{i18n.t('satisfaction')}</Text>
-                    <View style={styles.satisfactionRow}>
-                        {['Poor', 'Good', 'Excellent'].map((level) => (
-                            <TouchableOpacity
-                                key={level}
-                                style={[
-                                    styles.satisfactionButton,
-                                    satisfaction === level && styles.activeSatisfaction
-                                ]}
-                                onPress={() => setSatisfaction(level)}
-                            >
-                                <Text style={[
-                                    styles.satisfactionText,
-                                    satisfaction === level && { color: COLORS.white }
-                                ]}>{level}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-
-                <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                    <Text style={styles.submitButtonText}>{i18n.t('submit')}</Text>
+                {/* Submit Action */}
+                <TouchableOpacity
+                    style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+                    onPress={handleSubmit}
+                    disabled={submitting}
+                >
+                    {submitting ? (
+                        <ActivityIndicator color={COLORS.white} />
+                    ) : (
+                        <Text style={styles.submitButtonText}>{i18n.t('submit')}</Text>
+                    )}
                 </TouchableOpacity>
 
             </ScrollView>
@@ -266,44 +247,21 @@ const styles = StyleSheet.create({
         marginLeft: 5,
         fontSize: 12,
     },
-    input: {
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        borderRadius: 8,
-        padding: 10,
-        minHeight: 80,
-        textAlignVertical: 'top',
-        backgroundColor: COLORS.white,
-    },
-    satisfactionRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    satisfactionButton: {
-        flex: 1,
-        paddingVertical: 10,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        borderRadius: 8,
-        marginHorizontal: 4,
-        backgroundColor: COLORS.white,
-    },
-    activeSatisfaction: {
-        backgroundColor: COLORS.success,
-        borderColor: COLORS.success,
-    },
-    satisfactionText: {
-        fontWeight: '600',
-        color: COLORS.text,
-    },
     submitButton: {
         backgroundColor: COLORS.primary,
         padding: 18,
         borderRadius: 12,
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: 20,
         elevation: 3,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+    },
+    submitButtonDisabled: {
+        opacity: 0.7,
+        backgroundColor: '#9ca3af'
     },
     submitButtonText: {
         color: COLORS.white,

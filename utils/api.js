@@ -2,7 +2,7 @@ import axios from 'axios';
 import { NATIVE_PUBLIC_URL } from '../constants/Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-console.log('API Base URL:', NATIVE_PUBLIC_URL);
+// console.log('API Base URL:', NATIVE_PUBLIC_URL);
 
 // Create Axios Instance
 const api = axios.create({
@@ -21,14 +21,14 @@ api.interceptors.request.use(
                 config.headers.Authorization = `Bearer ${token}`;
             }
         } catch (error) {
-            console.log('Error retrieving token', error);
+            // console.log('Error retrieving token', error);
         }
 
         console.log(`[API REQUEST] ${config.method.toUpperCase()} ${config.url}`, config.data instanceof FormData ? 'FormData' : config.data);
         return config;
     },
     (error) => {
-        console.error('[API REQUEST ERROR]', error);
+        ('[API REQUEST ERROR]', error);
         return Promise.reject(error);
     }
 );
@@ -36,22 +36,22 @@ api.interceptors.request.use(
 // Response Interceptor
 api.interceptors.response.use(
     (response) => {
-        console.log(`[API RESPONSE] ${response.status} ${response.config.url}`, response.data);
+        // console.log(`[API RESPONSE] ${response.status} ${response.config.url}`, response.data);
         return response;
     },
     (error) => {
-        console.error('[API RESPONSE ERROR]', error.response?.status, error.response?.data, error.message);
         return Promise.reject(error);
     }
 );
 
-export const login = async (identifier, password) => {
+export const login = async (identifier, password, fcmToken) => {
     try {
         const isEmail = identifier.includes('@');
         const payload = {
             email: isEmail ? identifier : "",
             phone: !isEmail ? identifier : "",
-            password
+            password,
+            fcmToken
         };
         const response = await api.post('/api/worker/auth/login', payload);
         return response.data;
@@ -63,6 +63,7 @@ export const login = async (identifier, password) => {
 export const getWorkerTasks = async () => {
     try {
         const response = await api.get('/api/worker/tasks');
+        console.log('Tasks response:', response.data);
         return response.data;
     } catch (error) {
         throw error.response?.data || error.message;

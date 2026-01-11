@@ -27,7 +27,8 @@
       "favicon": "./assets/logo.png"
     },
     "plugins": [
-      "expo-localization"
+      "expo-localization",
+      "@react-native-firebase/app"
     ]
   }
 }

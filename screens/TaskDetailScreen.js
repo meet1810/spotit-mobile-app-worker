@@ -1,17 +1,31 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Image } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { COLORS, GLOBAL_STYLES, SHADOWS } from '../styles/theme';
 import Header from '../components/Header';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { NATIVE_PUBLIC_URL } from '../constants/Config';
 
 const { width } = Dimensions.get('window');
 
 const TaskDetailScreen = ({ route, navigation }) => {
     const { task } = route.params || {};
 
-    const handleStart = () => {
-        navigation.navigate('TaskOnboarding', { task });
+    const handleAction = async () => {
+        navigation.navigate('WorkCompletion', { task });
+    };
+
+    const imageUrl = task?.imagePath
+        ? (task.imagePath.startsWith('http') ? task.imagePath : `${NATIVE_PUBLIC_URL}/${task.imagePath}`)
+        : null;
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'RESOLVED': return COLORS.success;
+            case 'IN_PROGRESS': return COLORS.warning || '#FFA500';
+            case 'PENDING': return COLORS.danger;
+            default: return COLORS.primary;
+        }
     };
 
     return (
@@ -20,12 +34,18 @@ const TaskDetailScreen = ({ route, navigation }) => {
 
             <ScrollView contentContainerStyle={styles.content}>
 
+                {/* Task Image */}
+                {imageUrl && (
+                    <Image source={{ uri: imageUrl }} style={styles.taskImage} resizeMode="cover" />
+                )}
+
                 <View style={styles.headerSection}>
-                    <View style={styles.statusPill}>
-                        <Text style={styles.statusText}>COUNTED</Text>
+                    <View style={[styles.statusPill, { backgroundColor: getStatusColor(task?.status) }]}>
+                        <Text style={styles.statusText}>{task?.status || 'PENDING'}</Text>
                     </View>
-                    <Text style={styles.mainTitle}>{task?.title || 'Garbage Dump'}</Text>
-                    <Text style={styles.dateText}>Sat Jan 10 2026</Text>
+                    <Text style={styles.mainTitle}>{task?.category || 'Issue Reported'}</Text>
+                    <Text style={styles.dateText}>Posted on {new Date(task?.createdAt || Date.now()).toDateString()}</Text>
+                    {task?.severity && <Text style={styles.severityText}>Severity: {task.severity}</Text>}
                 </View>
 
                 {/* Location Card with Map */}
@@ -34,20 +54,22 @@ const TaskDetailScreen = ({ route, navigation }) => {
                         <Ionicons name="location-sharp" size={20} color={COLORS.primary} />
                         <Text style={styles.cardTitle}>Location</Text>
                     </View>
-                    <Text style={styles.addressText}>{task?.locationName}, New Delhi</Text>
+                    <Text style={styles.addressText}>{task?.address || `Lat: ${task?.latitude}, Long: ${task?.longitude}`}</Text>
 
                     <View style={styles.mapContainer}>
                         <MapView
                             style={styles.map}
                             initialRegion={{
-                                latitude: task?.coordinate.latitude || 28.6139,
-                                longitude: task?.coordinate.longitude || 77.2090,
+                                latitude: parseFloat(task?.latitude) || 28.6139,
+                                longitude: parseFloat(task?.longitude) || 77.2090,
                                 latitudeDelta: 0.005,
                                 longitudeDelta: 0.005,
                             }}
                             scrollEnabled={false}
                         >
-                            <Marker coordinate={task?.coordinate} />
+                            {task?.latitude && task?.longitude && (
+                                <Marker coordinate={{ latitude: parseFloat(task.latitude), longitude: parseFloat(task.longitude) }} />
+                            )}
                         </MapView>
                         <TouchableOpacity style={styles.openMapButton}>
                             <Text style={styles.openMapText}>Open in Google Maps</Text>
@@ -55,39 +77,33 @@ const TaskDetailScreen = ({ route, navigation }) => {
                     </View>
                 </View>
 
-                {/* Timeline */}
-                <Text style={styles.sectionTitle}>Status Timeline</Text>
-
-                <View style={styles.timelineContainer}>
-                    {/* Timeline Item 1 */}
-                    <View style={styles.timelineItem}>
-                        <View style={styles.timelineDot} />
-                        <View style={styles.timelineLine} />
-                        <View style={styles.timelineContent}>
-                            <Text style={styles.timelineTitle}>Issue Submitted!</Text>
-                            <Text style={styles.timelineDesc}>Your report was received.</Text>
-                            <Text style={styles.timelineTime}>4:28 PM</Text>
-                        </View>
+                {/* Info Card */}
+                <View style={styles.infoCard}>
+                    <Text style={styles.sectionTitle}>Details</Text>
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Issue ID:</Text>
+                        <Text style={styles.detailValue}>#{task?.id}</Text>
                     </View>
-
-                    {/* Timeline Item 2 */}
-                    <View style={styles.timelineItem}>
-                        <View style={styles.timelineDot} />
-                        <View style={styles.timelineContent}>
-                            <Text style={styles.timelineTitle}>AI Analysis Complete</Text>
-                            <Text style={styles.timelineDesc}>Verified as garbage dump.</Text>
-                        </View>
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Reporter:</Text>
+                        <Text style={styles.detailValue}>
+                            {task?.reporter?.name ? `${task.reporter.name} (${task.reporter.type || 'Citizen'})` : 'Anonymous'}
+                        </Text>
                     </View>
                 </View>
 
             </ScrollView>
 
             {/* Footer Action */}
-            <View style={styles.footer}>
-                <TouchableOpacity style={styles.actionButton} onPress={handleStart}>
-                    <Text style={styles.actionButtonText}>Start Task</Text>
-                </TouchableOpacity>
-            </View>
+            {task?.status !== 'RESOLVED' && (
+                <View style={styles.footer}>
+                    <TouchableOpacity style={[styles.actionButton, { backgroundColor: getStatusColor(task?.status) }]} onPress={handleAction}>
+                        <Text style={styles.actionButtonText}>
+                            {task?.status === 'PENDING' ? 'Start Task' : 'Complete & Resolve'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
         </View>
     );
@@ -98,16 +114,21 @@ const styles = StyleSheet.create({
         padding: 20,
         paddingBottom: 100,
     },
+    taskImage: {
+        width: '100%',
+        height: 200,
+        borderRadius: 12,
+        marginBottom: 20,
+    },
     headerSection: {
-        marginBottom: 24,
+        marginBottom: 20,
     },
     statusPill: {
-        backgroundColor: COLORS.primary,
         alignSelf: 'flex-start',
-        paddingHorizontal: 16,
-        paddingVertical: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
         borderRadius: 20,
-        marginBottom: 12,
+        marginBottom: 10,
     },
     statusText: {
         color: COLORS.white,
@@ -115,40 +136,35 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
     mainTitle: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: 'bold',
-        color: COLORS.white, // In screenshot background is grey, but here we are on white? 
-        // Ah, screenshot has GREY background header. Let's stick to clean white for now per "Stunning UI", 
-        // or adjust if background is needed. 
-        // Actually, Image 0 has a big grey header area. 
-        // Let's keep it clean white with dark text for better readability unless requested otherwise.
-        color: '#4B5563', // Dark grey
+        color: COLORS.text,
+        marginBottom: 5,
     },
     dateText: {
-        fontSize: 16,
-        color: '#9CA3AF',
-        marginTop: 4,
+        fontSize: 14,
+        color: COLORS.textLight,
     },
-    // Adjusting for the grey background look from screenshot
-    headerSection: {
-        marginBottom: 20,
-        paddingBottom: 20,
+    severityText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.danger,
+        marginTop: 5,
     },
-
     locationCard: {
         backgroundColor: COLORS.white,
-        borderRadius: 20,
+        borderRadius: 16,
         padding: 16,
-        marginBottom: 30,
+        marginBottom: 20,
         ...SHADOWS.medium,
     },
     cardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 10,
     },
     cardTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
         color: COLORS.secondary,
         marginLeft: 8,
@@ -156,83 +172,61 @@ const styles = StyleSheet.create({
     addressText: {
         fontSize: 14,
         color: COLORS.textSecondary,
-        marginBottom: 16,
-        marginLeft: 28,
+        marginBottom: 15,
+        lineHeight: 20,
     },
     mapContainer: {
-        height: 180,
+        height: 150,
         borderRadius: 12,
         overflow: 'hidden',
-        position: 'relative',
     },
     map: {
         ...StyleSheet.absoluteFillObject,
     },
     openMapButton: {
         position: 'absolute',
-        bottom: 12,
-        alignSelf: 'center',
+        bottom: 10,
+        right: 10,
         backgroundColor: COLORS.white,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
         borderRadius: 20,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        elevation: 3,
     },
     openMapText: {
         color: COLORS.primary,
+        fontSize: 10,
         fontWeight: 'bold',
-        fontSize: 12,
+    },
+    infoCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 20,
+        ...SHADOWS.low,
     },
     sectionTitle: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: 'bold',
         color: COLORS.secondary,
-        marginBottom: 20,
+        marginBottom: 15,
     },
-    timelineContainer: {
-        paddingLeft: 10,
-    },
-    timelineItem: {
+    detailRow: {
         flexDirection: 'row',
-        marginBottom: 30,
-        position: 'relative',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+        paddingBottom: 8,
     },
-    timelineDot: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        backgroundColor: COLORS.success, // Green dot
-        marginRight: 16,
-        zIndex: 1,
-    },
-    timelineLine: {
-        position: 'absolute',
-        left: 9, // Center of dot (20/2 - 1)
-        top: 20,
-        bottom: -30,
-        width: 2,
-        backgroundColor: COLORS.success,
-    },
-    timelineContent: {
-        flex: 1,
-    },
-    timelineTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: COLORS.secondary,
-        marginBottom: 4,
-    },
-    timelineDesc: {
+    detailLabel: {
         fontSize: 14,
-        color: COLORS.textSecondary,
-        marginBottom: 2,
+        color: COLORS.textLight,
     },
-    timelineTime: {
-        fontSize: 12,
-        color: '#9CA3AF',
+    detailValue: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.text,
     },
     footer: {
         position: 'absolute',
@@ -246,13 +240,13 @@ const styles = StyleSheet.create({
     },
     actionButton: {
         backgroundColor: COLORS.primary,
-        paddingVertical: 16,
+        paddingVertical: 15,
         borderRadius: 12,
         alignItems: 'center',
     },
     actionButtonText: {
         color: COLORS.white,
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
     },
 });
