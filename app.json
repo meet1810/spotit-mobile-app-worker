@@ -21,7 +21,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "package": "com.meetesh2004.spotitmobileappworker"
     },
     "web": {
       "favicon": "./assets/logo.png"
@@ -29,6 +30,11 @@
     "plugins": [
       "expo-localization",
       "@react-native-firebase/app"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e78a4e1c-4454-47a1-a073-40194b05f818"
+      }
+    }
   }
 }
